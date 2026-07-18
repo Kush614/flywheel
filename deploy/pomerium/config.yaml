@@ -1,0 +1,69 @@
+# Pomerium — production config for the Flywheel bid-actions gate.
+#
+# This is the REAL artifact the local PolicyGate (integrations/pomerium.py)
+# stands in for during the zero-dependency demo. It puts Pomerium in front of
+# the Nexla `bid.actions` MCP server so that every money-spending write is
+# authenticated, authorized, tool-scoped, and audited at the infrastructure
+# layer — below the agent, where a prompt-injected agent can't argue with it.
+#
+# Docs: https://www.pomerium.com/docs/capabilities/mcp  (mcp: routes + mcp_tool PPL)
+# NOTE: Pomerium's MCP support is experimental — confirm exact keys at the booth.
+
+authenticate_service_url: https://authenticate.flywheel.example.com
+
+# Identity provider for human approvers (the out-of-band "click approve" step).
+idp_provider: oidc
+idp_client_id: ${IDP_CLIENT_ID}
+idp_client_secret: ${IDP_CLIENT_SECRET}
+
+# Scoped service identity for the agent itself (CI/background delegation).
+# Every bid action is tied to this identity in the audit log.
+signing_key: ${POMERIUM_SIGNING_KEY}
+
+# Full audit: ship the access/authorization log to your SIEM. The dashboard's
+# audit stream is fed from this in production.
+tracing_provider: otlp
+tracing_otlp_endpoint: ${OTLP_ENDPOINT}
+
+routes:
+  # --- READ surface: campaign.performance (the governed Nexset) -------------
+  # Reads are free and broadly allowed to the agent identity.
+  - from: https://campaign-data.flywheel.example.com
+    to: http://nexla-mcp-studio:8080
+    name: nexla-campaign-performance
+    mcp:
+      server: {}
+    policy:
+      and:
+        - mcp_tool:
+            is: campaign.performance
+        - claim/sub:
+            is: agent:flywheel-loopA
+
+  # --- WRITE surface: bid.actions (spends money) — tightly scoped -----------
+  # Only the bid.actions tool is reachable; every admin_* tool is blocked.
+  # The stateful policies (per-session budget cap, human-approval-above-
+  # threshold) are enforced in the gate wrapper because PPL is stateless per
+  # request — see integrations/pomerium.py. Pomerium owns identity, TLS,
+  # tool-scoping, and the audit trail.
+  - from: https://bid-actions.flywheel.example.com
+    to: http://nexla-mcp-studio:8080
+    name: nexla-bid-actions
+    mcp:
+      server: {}
+    policy:
+      and:
+        # allowlist: only the bid-writing tool, nothing else on the server
+        - mcp_tool:
+            in:
+              - bid.actions
+        # blocklist: no admin / config tools, ever
+        - not:
+            mcp_tool:
+              starts_with: admin_
+        # only the scoped agent identity may issue writes
+        - claim/sub:
+            is: agent:flywheel-loopA
+        # time-bound: the agent's action token must be fresh (issued this period)
+        - claim/exp:
+            after: 0s

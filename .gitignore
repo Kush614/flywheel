@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.log
+# runtime-generated campaign feeds (regenerated when an ad wins)
+dashboard/static/media/campaigns/
+akamai/

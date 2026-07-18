@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flywheel — how it works</title>
+<style>
+  :root{
+    --bg:#0c0c11; --surface:#17171f; --surface2:#20202a; --ink:#ecedf2; --dim:#8b8b98; --line:#33333f;
+    --pink:#FF90E8; --yellow:#FFC900; --green:#3FD08A; --teal:#2ad0c0; --lav:#B79CFF; --red:#FF6D6D;
+    --sh:4px 4px 0 #000;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.6 "Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;font-weight:500;
+    background:var(--bg);color:var(--ink);
+    background-image:radial-gradient(rgba(255,255,255,.035) 1.1px,transparent 1.1px);background-size:24px 24px}
+  a{color:var(--pink);text-decoration:none}
+  .wrap{max-width:860px;margin:0 auto;padding:24px 20px 80px}
+  .top{display:flex;align-items:center;gap:12px;margin-bottom:26px}
+  .top .sp{flex:1}
+  button{background:var(--surface2);color:var(--ink);border:2px solid var(--line);border-radius:10px;
+    padding:8px 14px;font-weight:700;cursor:pointer;box-shadow:2px 2px 0 #000;font-size:13px}
+  button:hover{border-color:var(--pink)}
+  h1{font-size:38px;font-weight:800;letter-spacing:-.03em;margin:0 0 6px;line-height:1.05}
+  h1 .g{background:linear-gradient(90deg,var(--pink),var(--teal));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{font-size:17px;color:#c9c9d4;max-width:60ch;margin:0 0 8px}
+  h2{font-size:22px;font-weight:800;letter-spacing:-.02em;margin:44px 0 14px}
+  p{color:#c9c9d4}
+  b,strong{color:var(--ink)}
+  .chip{display:inline-block;font-size:11px;font-weight:800;padding:2px 9px;border-radius:999px;border:2px solid #000;color:#111}
+  code{font-family:ui-monospace,Consolas,monospace;background:var(--surface2);padding:1px 6px;border-radius:5px;border:1px solid var(--line);font-weight:700;font-size:13px}
+  /* diagram */
+  .flow{display:flex;flex-direction:column;align-items:stretch;gap:0;margin:8px 0}
+  .node{background:var(--surface);border:2px solid var(--line);border-radius:16px;box-shadow:var(--sh);
+    padding:16px 18px;display:flex;gap:14px;align-items:flex-start}
+  .node .ic{font-size:26px;line-height:1;flex:0 0 auto;margin-top:2px}
+  .node .t{font-weight:800;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .node .d{color:#b9b9c6;font-size:13.5px;margin-top:3px}
+  .node.nexla{border-color:var(--lav)} .node.zero{border-color:var(--pink)}
+  .node.loop{border-color:var(--yellow)} .node.adbox{border-color:var(--teal)}
+  .node.users{border-color:var(--green)} .node.pub{border-color:var(--lav)}
+  .arrow{align-self:center;color:var(--dim);font-size:13px;font-weight:800;padding:7px 0;letter-spacing:.5px;
+    display:flex;flex-direction:column;align-items:center;gap:1px}
+  .arrow b{color:var(--ink)}
+  .tag-nexla{background:var(--lav)} .tag-zero{background:var(--pink)} .tag-loop{background:var(--yellow)}
+  .tag-adbox{background:var(--teal)} .tag-pom{background:var(--red)}
+  .cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:6px}
+  @media(max-width:680px){.cards{grid-template-columns:1fr}}
+  .c{background:var(--surface);border:2px solid var(--line);border-radius:14px;padding:15px 16px}
+  .c h3{margin:0 0 6px;font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px}
+  .c p{margin:0;font-size:13.5px}
+  table{width:100%;border-collapse:collapse;margin-top:8px;font-size:13px;
+    border:2px solid var(--line);border-radius:12px;overflow:hidden}
+  th,td{text-align:left;padding:9px 11px;border-bottom:1px solid var(--line)}
+  th{background:var(--surface2);font-weight:800;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--dim)}
+  tr:last-child td{border-bottom:none}
+  td code{font-size:12px}
+  .note{border:2px dashed var(--line);border-radius:14px;padding:14px 16px;margin-top:16px;color:#b9b9c6;font-size:14px}
+  .pill{display:inline-flex;gap:6px;align-items:center;font-size:12px;font-weight:800;padding:4px 10px;border-radius:999px;
+    border:2px solid var(--line);background:var(--surface2);margin:3px 4px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div style="font-weight:800;font-size:16px">🔁 Flywheel</div>
+    <div class="sp"></div>
+    <a href="/"><button>← Back to the app</button></a>
+  </div>
+
+  <h1>Ads that <span class="g">rewrite themselves</span><br>to fit your users.</h1>
+  <p class="lede">An agent loop watches how users respond to each ad, keeps the winners, and
+    <b>regenerates the ads users ignore</b> — the concept, the image, and the video — then ships
+    the winner to every ad platform. Two sponsors do the heavy lifting.</p>
+  <div>
+    <span class="pill">◐ Nexla — the data</span>
+    <span class="pill">⚡ Zero — the compute</span>
+    <span class="pill">🎨 Adbox — the creative engine</span>
+    <span class="pill">🛡 Pomerium — the guardrail</span>
+  </div>
+
+  <h2>The loop, end to end</h2>
+  <div class="flow">
+    <div class="node users"><div class="ic">👥</div><div>
+      <div class="t">Real users</div>
+      <div class="d">click and convert on your ads. That behaviour is the ground truth the loop optimizes — nothing the agent can fake.</div></div></div>
+    <div class="arrow">▼<b>response</b></div>
+
+    <div class="node nexla"><div class="ic">◐</div><div>
+      <div class="t">Nexla — user response, governed <span class="chip tag-nexla">observe</span></div>
+      <div class="d">The response arrives as a <b>governed Nexset</b> — schema-enforced, validated, lineage-tracked — exposed to the agent over an MCP toolset. The loop's <b>observe</b> step trusts only this.</div></div></div>
+    <div class="arrow">▼</div>
+
+    <div class="node loop"><div class="ic">🔁</div><div>
+      <div class="t">Flywheel — the loop engine <span class="chip tag-loop">plan · act · observe · correct</span></div>
+      <div class="d">Reads the response, diagnoses each ad, and self-corrects. It knows the difference between "bid too low" and "the creative doesn't resonate," picks a different fix per cause, and <b>halts itself</b> instead of thrashing on noise.</div></div></div>
+    <div class="arrow">▼<b>an ad flops (users click, don't convert)</b></div>
+
+    <div class="node adbox"><div class="ic">🎨</div><div>
+      <div class="t">Adbox — decide → render <span class="chip tag-adbox">act</span></div>
+      <div class="d"><b>Decide:</b> draft 3 fresh concepts from the ad's context, pick the strongest. <b>Render:</b> generate a new image, then animate it into a hero video. This is Adbox's creative factory — re-architected off Akamai.</div></div></div>
+    <div class="arrow">▼<b>powered by</b></div>
+
+    <div class="node zero"><div class="ic">⚡</div><div>
+      <div class="t">Zero — keyless compute, paid per use <span class="chip tag-zero">x402 wallet</span></div>
+      <div class="d">The agent <b>discovers and pays</b> for the LLM (concepts), the image model, and the video model through Zero — <b>no API keys, no Akamai</b>, pennies from an x402 wallet. Every spend is gated by Pomerium.</div></div></div>
+    <div class="arrow">▼<b>an ad wins for real users</b></div>
+
+    <div class="node pub"><div class="ic">📤</div><div>
+      <div class="t">Nexla — publish the winner <span class="chip tag-nexla">act → ship</span></div>
+      <div class="d">The winning ad becomes a governed campaign and Nexla ships it to <b>Shopify, Google Merchant, and Meta Catalog</b> — one source, many validated destinations. That's Nexla's core job, both directions.</div></div></div>
+  </div>
+
+  <div class="note">🛡 <b>Pomerium wraps every money-spend.</b> A per-session budget cap, human-approval-above-threshold,
+    and an infra-layer gate that blocks prompt-injection (a poisoned "bid $10,000" field is refused below the
+    agent's reasoning — it physically cannot overspend). Every decision is audited.</div>
+
+  <h2>How each sponsor is used — their core capability</h2>
+  <div class="cards">
+    <div class="c"><h3>◐ Nexla — the data plane</h3><p>Governed data <b>in</b> (user-response Nexset the loop reads) and <b>out</b> (winning campaign shipped to ad platforms via a governed pipeline). Schema, validation, lineage, MCP toolset — data the agent can trust.</p></div>
+    <div class="c"><h3>⚡ Zero — keyless compute</h3><p>Discover + pay (x402) for any capability with no pre-wired keys. Here it brokers the whole compute stack — LLM concepts, image rendering, and video — replacing Akamai. It even <b>hosted this page's sibling site</b> for free.</p></div>
+    <div class="c"><h3>🎨 Adbox — the creative engine</h3><p>The "decide → render" factory (draft concepts → pick → render). Adbox alone renders and stops; Flywheel adds the <b>measurement</b> — did the new ad actually lift user response? — so creative becomes a measured optimization.</p></div>
+    <div class="c"><h3>🔁 Flywheel — the loop</h3><p>A generic <code>loopkit</code> engine: plan → act → observe → correct, with a thrash/stop detector and an explore/exploit budgeter. The same engine also runs a second domain unchanged — proof it's real loop engineering.</p></div>
+  </div>
+
+  <h2>The live models (all paid from the Zero wallet, no keys)</h2>
+  <table>
+    <tr><th>Step</th><th>Model (via Zero)</th><th>Rail</th><th>Cost</th></tr>
+    <tr><td>Decide — concepts</td><td><code>Groq · Llama 3.3 70B</code></td><td>mpp / Tempo</td><td>~$0.008</td></tr>
+    <tr><td>Render — image</td><td><code>fal.ai · FLUX.1 Schnell</code></td><td>mpp / Tempo</td><td>$0.003</td></tr>
+    <tr><td>Render — hero video</td><td><code>Grok Imagine · image→video</code></td><td>mpp / Tempo</td><td>$0.50</td></tr>
+    <tr><td>Publish — hosting</td><td><code>Zero · Host Website</code></td><td>mpp / Tempo</td><td>free</td></tr>
+  </table>
+
+  <div class="note">Every generation is fresh (unique seed, context-aware prompt from the ad's user-response
+    problem). If a paid call ever fails, the loop <b>falls back</b> to a prebuilt creative and keeps running —
+    it never stalls. The cost ledger on the main page itemizes real spend live.</div>
+
+  <div style="margin-top:34px"><a href="/"><button class="pri" style="background:var(--pink);color:#111;border-color:#111">← Watch it run</button></a></div>
+</div>
+</body>
+</html>

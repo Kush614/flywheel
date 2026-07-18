@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Flywheel — self-improving ads</title>
+<style>
+  :root{
+    --bg:#0c0c11; --surface:#17171f; --surface2:#20202a; --ink:#ecedf2; --dim:#8b8b98;
+    --line:#33333f;
+    --pink:#FF90E8; --yellow:#FFC900; --green:#3FD08A; --teal:#2ad0c0;
+    --lav:#B79CFF; --red:#FF6D6D; --sh:4px 4px 0 #000;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:15px/1.55 "Helvetica Neue",Helvetica,Arial,system-ui,sans-serif;font-weight:500;
+    background:var(--bg);color:var(--ink);
+    background-image:radial-gradient(rgba(255,255,255,.035) 1.1px,transparent 1.1px);background-size:24px 24px}
+  a{color:var(--pink)}
+  .wrap{max-width:1080px;margin:0 auto;padding:22px 20px 60px}
+  button{background:var(--surface2);color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:9px 16px;
+    cursor:pointer;font-size:14px;font-weight:700;box-shadow:var(--sh);
+    transition:transform .07s,box-shadow .07s}
+  button:hover{transform:translate(-1px,-1px);box-shadow:5px 5px 0 #000;border-color:var(--pink)}
+  button:active{transform:translate(2px,2px);box-shadow:none}
+  button.pri{background:var(--pink);color:#111;border-color:#111}
+  button.ghost{box-shadow:none;border-width:2px;padding:7px 12px;font-size:12.5px;background:#15151d}
+  button.ghost:hover{box-shadow:2px 2px 0 #000}
+  /* top bar */
+  .top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:8px}
+  .brand{display:flex;align-items:center;gap:11px}
+  .fly{width:40px;height:40px;animation:spin var(--spin,9s) linear infinite;
+    filter:drop-shadow(0 0 6px rgba(255,144,232,.6))}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .title{font-size:23px;font-weight:800;letter-spacing:-.02em;line-height:1}
+  .sub{font-size:12px;color:var(--dim);font-weight:600;margin-top:3px}
+  .sp{flex:1}
+  .dot{width:11px;height:11px;border-radius:50%;background:var(--surface2);border:2px solid var(--line);display:inline-block;vertical-align:-1px;margin-right:6px}
+  .dot.live{background:var(--green);border-color:var(--green);box-shadow:0 0 8px var(--green)}
+  .try{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:14px 0 20px}
+  .try .lbl{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--dim)}
+  /* main hero grid */
+  .grid{display:grid;grid-template-columns:1.15fr 1fr;gap:18px}
+  @media(max-width:820px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--surface);border:2px solid var(--line);border-radius:18px;box-shadow:var(--sh);overflow:hidden}
+  .card .hd{padding:12px 16px;border-bottom:2px solid var(--line);font-weight:800;font-size:14px;
+    display:flex;align-items:center;gap:8px}
+  .pad{padding:16px}
+  /* hero ad */
+  .hero{position:relative;aspect-ratio:16/11;background:#000;display:flex;align-items:flex-end}
+  .hero video,.hero img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+  .hero .cap{position:relative;z-index:2;width:100%;padding:14px 16px;
+    background:linear-gradient(180deg,transparent,rgba(0,0,0,.85))}
+  .hero .cap h3{margin:0;color:#fff;font-size:20px;font-weight:800}
+  .hero .cap p{margin:3px 0 0;color:#d8d8e0;font-size:12px}
+  .flag{position:absolute;top:10px;left:10px;z-index:3;font-size:10px;font-weight:800;text-transform:uppercase;
+    letter-spacing:.4px;padding:4px 9px;border-radius:999px;background:var(--green);color:#111;border:1.5px solid #000}
+  .flag.gen{background:var(--yellow);animation:pulse 1s infinite}
+  @keyframes pulse{50%{opacity:.5}}
+  .before{position:absolute;bottom:10px;right:10px;z-index:3;width:74px;border:2px solid #fff;border-radius:8px;
+    box-shadow:0 3px 10px rgba(0,0,0,.6);filter:grayscale(.8) brightness(.7)}
+  /* big metric */
+  .big{font-size:58px;font-weight:800;letter-spacing:-.03em;line-height:1;font-variant-numeric:tabular-nums;color:#fff}
+  .trend{font-size:15px;font-weight:800;margin-top:4px}
+  .trend.up{color:var(--green)} .trend.down{color:var(--red)}
+  .msub{color:var(--dim);font-size:13px;margin-top:2px;font-weight:600}
+  #spark{width:100%;height:56px;margin-top:12px;display:block}
+  .steps{display:flex;gap:6px;margin-top:16px}
+  .step{flex:1;text-align:center;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;
+    padding:7px 2px;border:2px solid var(--line);border-radius:8px;background:var(--surface2);color:var(--dim);transition:.15s}
+  .step.on{background:var(--pink);color:#111;border-color:var(--pink);transform:translateY(-2px)}
+  .now{margin-top:12px;font-size:12.5px;color:#c6c6d2;min-height:32px;font-weight:600;line-height:1.35}
+  /* ads strip */
+  .ads{margin-top:22px}
+  .ads .hd2{font-weight:800;font-size:15px;margin:0 2px 12px;display:flex;align-items:center;gap:8px}
+  .adrow{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+  @media(max-width:820px){.adrow{grid-template-columns:repeat(2,1fr)}}
+  .ad{background:var(--surface);border:2px solid var(--line);border-radius:14px;box-shadow:3px 3px 0 #000;overflow:hidden}
+  .ad .thumb{aspect-ratio:1;background:#26262e center/cover;position:relative}
+  .ad .spark2{position:absolute;top:6px;right:6px;font-size:14px}
+  .ad .body{padding:9px 10px}
+  .ad .nm{font-weight:800;font-size:12.5px;line-height:1.1}
+  .ad .bar{height:8px;background:#26262e;border:1.5px solid var(--line);border-radius:999px;margin-top:7px;overflow:hidden}
+  .ad .bar i{display:block;height:100%;background:var(--green)}
+  .ad .st{font-size:10px;font-weight:800;margin-top:5px;text-transform:uppercase;letter-spacing:.3px;color:var(--dim)}
+  .ad.dud{border-color:var(--red)}
+  .ad.dud .st{color:var(--red)}
+  /* badges + ledger */
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .b2{font-size:11px;font-weight:800;padding:5px 10px;border-radius:999px;border:2px solid var(--line);background:var(--surface2);
+    display:flex;align-items:center;gap:5px}
+  .b2.on{background:var(--green);color:#111;border-color:var(--green)} .b2.flash{background:var(--red);color:#111;border-color:var(--red)}
+  .ledger{display:flex;gap:0;margin-top:14px;border:2px solid var(--line);border-radius:12px;overflow:hidden}
+  .ledger .lc{flex:1;padding:11px 12px;border-right:2px solid var(--line)}
+  .ledger .lc:last-child{border-right:none}
+  .ledger .lk{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--dim)}
+  .ledger .lv{font-size:20px;font-weight:800;margin-top:3px;font-variant-numeric:tabular-nums;color:#fff}
+  /* toast */
+  #toasts{position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:50;display:flex;flex-direction:column;gap:8px;align-items:center}
+  .toast{padding:12px 18px;border:2px solid #000;border-radius:14px;font-weight:800;font-size:14px;color:#111;
+    box-shadow:var(--sh);animation:drop .3s ease}
+  .toast.warn{background:var(--red)} .toast.grow{background:var(--green)} .toast.stop{background:var(--yellow)}
+  @keyframes drop{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:none}}
+  code{font-family:ui-monospace,Consolas,monospace;background:var(--surface2);padding:1px 5px;border-radius:5px;border:1px solid var(--line);font-weight:700;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="brand">
+      <svg class="fly" id="fly" viewBox="0 0 100 100"><circle cx="50" cy="50" r="46" fill="none" stroke="#FF90E8" stroke-width="7"/><g stroke="#FF90E8" stroke-width="8" stroke-linecap="round"><line x1="50" y1="50" x2="50" y2="10"/><line x1="50" y1="50" x2="88" y2="72"/><line x1="50" y1="50" x2="12" y2="72"/></g><circle cx="50" cy="50" r="12" fill="#FF90E8"/></svg>
+      <div><div class="title">Self-improving ads</div><div class="sub">the loop learns from your users &amp; rewrites the ads they ignore</div></div>
+    </div>
+    <div class="sp"></div>
+    <a href="/about" style="text-decoration:none"><button class="ghost">ⓘ How it works</button></a>
+    <span class="sub" id="status"><span class="dot" id="dot"></span>idle · period <b id="period">0</b></span>
+  </div>
+
+  <div class="try">
+    <button class="pri" id="bStart">▶ Start</button>
+    <button id="bReset">↺ Reset</button>
+    <button class="ghost" id="bNarrate">🔊 Narrate</button>
+    <span class="lbl" style="margin-left:6px">Try:</span>
+    <button class="ghost" data-cb="mark_dud" data-kw="premium-watches">💀 Make an ad flop</button>
+    <button class="ghost" data-cb="poison" data-kw="cheap-widgets">☠ Inject $10k</button>
+    <button class="ghost" data-cb="bid_war" data-kw="running-shoes">⚔ Bid war</button>
+    <button class="ghost" id="bGrowth">🌱 Grow → hire</button>
+    <button class="ghost" id="bMode">🎞 Sim</button>
+  </div>
+
+  <div class="grid">
+    <!-- hero: the ad being improved -->
+    <div class="card">
+      <div class="hd">🎬 The ad, right now</div>
+      <div class="hero" id="hero">
+        <span class="flag" id="heroFlag">featured</span>
+        <div class="cap"><h3 id="heroName">—</h3><p id="heroSub">press Start to begin the loop</p></div>
+      </div>
+    </div>
+
+    <!-- result + progress + ledger -->
+    <div class="card">
+      <div class="pad">
+        <div class="lk" style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--dim)">User response · conversions per $</div>
+        <div class="big" id="mBig">—</div>
+        <div class="trend" id="mTrend">&nbsp;</div>
+        <div class="msub" id="mSub">ground truth from Nexla</div>
+        <svg id="spark" viewBox="0 0 300 56" preserveAspectRatio="none"></svg>
+
+        <div class="steps" id="steps">
+          <div class="step" data-s="plan">plan</div>
+          <div class="step" data-s="act">act</div>
+          <div class="step" data-s="observe">observe</div>
+          <div class="step" data-s="correct">correct</div>
+        </div>
+        <div class="now" id="now">—</div>
+
+        <div class="badges">
+          <span class="b2" id="bgNexla">◐ Nexla · Nexset</span>
+          <span class="b2" id="bgZero">⚡ Zero · x402</span>
+          <span class="b2" id="bgPom">🛡 Pomerium</span>
+        </div>
+        <div class="ledger">
+          <div class="lc"><div class="lk">Ads generated</div><div class="lv" id="lGen">0</div></div>
+          <div class="lc"><div class="lk">Spent (x402)</div><div class="lv" id="lSpent">$0.00</div></div>
+          <div class="lc"><div class="lk" id="lThirdK">Improvement</div><div class="lv" id="lThird">—</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- the population of ads, learning -->
+  <div class="ads">
+    <div class="hd2">📣 Your ads, learning from users <span class="sub" style="font-weight:600">— weak ads get a fresh creative via Zero</span></div>
+    <div class="adrow" id="adrow"></div>
+  </div>
+</div>
+<div id="toasts"></div>
+
+<script>
+const $=s=>document.querySelector(s);
+const KWS=["running-shoes","cheap-widgets","premium-watches","blue-sneakers","luxury-handbags"];
+const NAMES={"running-shoes":"Running Shoes","cheap-widgets":"Cheap Widgets","premium-watches":"Premium Watches","blue-sneakers":"Blue Sneakers","luxury-handbags":"Luxury Handbags"};
+const ADBOX={"running-shoes":"demo_shoe","blue-sneakers":"demo_shoe","premium-watches":"demo_perfume","luxury-handbags":"demo_perfume","cheap-widgets":"demo_coffee"};
+const heroImg=k=>`/media/adbox/${ADBOX[k]||'demo_coffee'}/c6_final.jpg`;
+const heroVid=k=>`/media/adbox/${ADBOX[k]||'demo_coffee'}/c6_video.mp4`;
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+let firstObj=null, series=[], gen=0, spent=0, featured=null, injToasted=false, liveImg={};
+
+// build ad cards
+$('#adrow').innerHTML=KWS.map(k=>`
+  <div class="ad" id="ad-${k}">
+    <div class="thumb" style="background-image:url('${heroImg(k)}')"><span class="spark2" id="sp2-${k}"></span></div>
+    <div class="body"><div class="nm">${NAMES[k]}</div><div class="bar"><i id="bar-${k}" style="width:0%"></i></div>
+      <div class="st" id="st-${k}">waiting</div></div>
+  </div>`).join('');
+
+function pulse(step){ document.querySelectorAll('.step').forEach(s=>s.classList.toggle('on',s.dataset.s===step)); }
+function setStatus(live){ $('#dot').className='dot'+(live?' live':''); $('#status').childNodes[2].nodeValue=(live?'running':'idle')+' · period '; }
+function toast(msg,cls){ const t=document.createElement('div'); t.className='toast '+cls; t.textContent=msg; $('#toasts').appendChild(t); setTimeout(()=>t.remove(),5200); }
+
+// narration (browser TTS, offline)
+let narrateOn=false;
+function narrate(x){ if(!narrateOn||!('speechSynthesis'in window))return; try{const u=new SpeechSynthesisUtterance(x);u.rate=1.05;speechSynthesis.cancel();speechSynthesis.speak(u);}catch(e){} }
+$('#bNarrate').onclick=()=>{narrateOn=!narrateOn;$('#bNarrate').style.background=narrateOn?'var(--green)':'#FBF9F1';$('#bNarrate').textContent=narrateOn?'🔊 Narrating':'🔊 Narrate';};
+
+function setHero(k,{gen=false,newImg=null,newVid=null}={}){
+  featured=k;
+  $('#hero').querySelectorAll('video,img,.before').forEach(e=>e.remove());
+  let el;
+  if(newVid){ el=document.createElement('video'); el.src=newVid; }
+  else if(newImg){ el=document.createElement('img'); el.src=newImg; }
+  else { el=document.createElement('video'); el.src=heroVid(k); }
+  if(el.tagName==='VIDEO'){ el.autoplay=el.muted=el.loop=el.playsInline=true; el.setAttribute('playsinline',''); }
+  $('#hero').prepend(el);
+  if(newImg||newVid){ const b=document.createElement('img'); b.className='before'; b.src=heroImg(k); $('#hero').appendChild(b); }
+  $('#heroName').textContent=NAMES[k];
+  $('#heroFlag').textContent=gen?'generating…':(newVid?'✨ AI hero video':(newImg?'✨ new creative':'top performer'));
+  $('#heroFlag').className='flag'+(gen?' gen':'');
+  $('#heroSub').textContent=gen?'paying via Zero (x402) to regenerate this ad from user context':
+    (newVid?'freshly generated hero video — paid from the agent’s wallet, no keys':
+     (newImg?'freshly generated image — paid from the wallet, no API key':'best response so far'));
+}
+
+function onEvent(e){
+  if(e.loop==='talent'){ if(e.kind==='observe'){ $('#lThirdK').textContent='Reply rate'; $('#lThird').textContent=(e.objective*100).toFixed(0)+'%'; } return; }
+  const k=e.kind;
+  if(typeof e.period==='number') $('#period').textContent=e.period;
+  if(k==='plan'){ pulse('plan'); if(e.rationale) $('#now').textContent=e.rationale.slice(0,150); }
+  else if(k==='act'){ pulse('act'); }
+  else if(k==='observe'){ pulse('observe'); onObserve(e); }
+  else if(k==='correct'){ pulse('correct'); }
+  else if(k==='creative'){ onCreative(e); }
+  else if(k==='audit'){ if(e.category==='injection'&&e.decision==='deny'){ $('#bgPom').className='b2 flash'; if(!injToasted){injToasted=true;toast('🛡 Pomerium blocked a $10,000 injection',' warn');narrate('Prompt injection blocked at the gate.');} setTimeout(()=>$('#bgPom').className='b2',900); } }
+  else if(k==='growth'){ toast('🌱 '+(e.note||'Growth sustained — hiring loop started').split('—')[0],'grow'); $('#lThirdK').textContent='Reply rate'; narrate('Growth sustained. The same loop now hires to staff it.'); }
+  else if(k==='halt'){ toast('■ Self-stopped — it knows when to quit','stop'); setStatus(false); }
+  else if(k==='curveball'){ if(e.curveball!=='big_bid') toast('⚡ '+(e.note||'scenario').split('—')[0].slice(0,54),'stop'); }
+}
+
+function onObserve(e){
+  const s=e.signals||{}; let best=null,bestv=-1;
+  for(const k of KWS){
+    const g=s[k]; if(!g) continue;
+    const vpd=g.vpd||0;
+    $('#bar-'+k).style.width=Math.min(100,vpd/0.28*100)+'%';
+    const cls=g.class;
+    const card=$('#ad-'+k); card.classList.toggle('dud',cls==='relevance_limited');
+    $('#st-'+k).textContent = cls==='relevance_limited'?'needs new creative' : cls==='bid_limited'?'scaling up' : cls==='healthy'?'winning':'learning';
+    $('#sp2-'+k).textContent = cls==='healthy'?'🏆':cls==='relevance_limited'?'⚠️':'';
+    $('#bar-'+k).style.background = cls==='relevance_limited'?'var(--red)':'var(--green)';
+    if(vpd>bestv){bestv=vpd;best=k;}
+  }
+  // headline metric
+  const obj=e.objective; if(firstObj===null)firstObj=obj;
+  $('#mBig').textContent=obj.toFixed(3);
+  $('#mSub').textContent='cost per conversion $'+(obj>0?(1/obj).toFixed(2):'—')+' · ground truth from Nexla';
+  const imp=firstObj?(obj-firstObj)/firstObj*100:0;
+  $('#mTrend').textContent=(imp>=0?'▲ +':'▼ ')+imp.toFixed(0)+'% since start';
+  $('#mTrend').className='trend '+(imp>=0?'up':'down');
+  $('#lThird').textContent=(imp>=0?'+':'')+imp.toFixed(0)+'%';
+  series.push(obj); drawSpark();
+  const dur=Math.max(1.4,9-Math.max(0,imp)*0.3); document.documentElement.style.setProperty('--spin',dur.toFixed(1)+'s');
+  // feature the best performer unless we're mid-regeneration
+  if(!featured || !$('#heroFlag').classList.contains('gen')) setHero(best||featured||'running-shoes');
+}
+
+function onCreative(e){
+  const k=e.keyword;
+  if(e.paid){ const p=parseFloat(e.paid)||0; if(p>0){ spent+=p; $('#lSpent').textContent='$'+spent.toFixed(2); } }
+  if(e.stage!=='published'){ $('#bgZero').className='b2 on'; setTimeout(()=>$('#bgZero').className='b2',1400); }
+  if(e.stage==='deciding'){ setHero(k,{gen:true}); $('#now').textContent='🧠 '+(e.note||''); }
+  else if(e.stage==='concepts'){ const h=e.chosen&&e.chosen.headline; if(h) $('#heroSub').textContent='concept: “'+esc(h)+'”'; $('#now').textContent='📝 '+(e.note||''); }
+  else if(e.stage==='discovering'||e.stage==='generating'||e.stage==='rendering'||e.stage==='animating'){ setHero(k,{gen:true}); $('#now').textContent='🎨 '+(e.note||''); }
+  else if(e.stage==='video'){ setHero(k,{newVid:e.video}); $('#now').textContent='🎬 '+(e.note||''); toast('🎬 AI hero video for '+NAMES[k],'grow'); narrate('Generated a hero video for '+NAMES[k]); }
+  else if(e.stage==='discovered'){ $('#now').textContent='⚡ '+(e.note||''); }
+  else if(e.stage==='generated'){
+    gen++; $('#lGen').textContent=gen;
+    if(e.image){ liveImg[k]=e.image; $('#ad-'+k+' .thumb').style.backgroundImage=`url('${e.image}')`; }
+    setHero(k,{newImg:e.image||heroImg(k)});
+    narrate('New ad generated for '+NAMES[k]+', paid from the agent’s wallet.');
+    toast('✨ New ad for '+NAMES[k],'grow');
+  }
+  else if(e.stage==='call_skipped'){ gen++; $('#lGen').textContent=gen; setHero(k,{newImg:heroImg(k)}); $('#now').textContent=e.note||''; toast('✨ New ad for '+NAMES[k],'grow'); }
+  else if(e.stage==='blocked'||e.stage==='unavailable'){ setHero(k,{newImg:heroImg(k)}); $('#now').textContent=e.note||''; }
+  else if(e.stage==='published'){
+    $('#bgNexla').className='b2 on'; $('#now').textContent='📤 '+(e.note||'');
+    toast('📤 '+NAMES[k]+' published to '+((e.feeds||[]).length)+' platforms via Nexla','grow');
+    narrate(NAMES[k]+' published to ad platforms through Nexla.');
+  }
+}
+
+function drawSpark(){
+  const svg=$('#spark'),W=300,H=56; if(series.length<2){svg.innerHTML='';return;}
+  const lo=Math.min(...series),hi=Math.max(...series),rng=(hi-lo)||1;
+  const x=i=>i/(series.length-1)*W, y=v=>H-4-((v-lo)/rng)*(H-8);
+  const pts=series.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  svg.innerHTML=`<polyline points="${x(0)},${H} ${pts} ${x(series.length-1)},${H}" fill="rgba(63,208,138,.18)" stroke="none"/>`
+    +`<polyline points="${pts}" fill="none" stroke="#0f9d63" stroke-width="3"/>`;
+}
+
+// controls
+async function post(u,b){ await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b||{})}); }
+$('#bStart').onclick=()=>{post('/api/start');setStatus(true);};
+$('#bReset').onclick=async()=>{ await post('/api/reset'); firstObj=null;series=[];gen=0;spent=0;featured=null;injToasted=false;liveImg={};
+  $('#mBig').textContent='—';$('#mTrend').innerHTML='&nbsp;';$('#lGen').textContent='0';$('#lSpent').textContent='$0.00';$('#lThird').textContent='—';$('#spark').innerHTML='';$('#now').textContent='—';$('#period').textContent='0';
+  KWS.forEach(k=>{$('#bar-'+k).style.width='0%';$('#st-'+k).textContent='waiting';$('#sp2-'+k).textContent='';$('#ad-'+k).classList.remove('dud');$('#ad-'+k+' .thumb').style.backgroundImage=`url('${heroImg(k)}')`;});
+  setHero('running-shoes'); $('#heroFlag').textContent='featured';$('#heroSub').textContent='press Start to begin the loop'; setStatus(false); if(sse){sse.close();connect();} };
+document.querySelectorAll('button[data-cb]').forEach(b=>b.onclick=()=>post('/api/curveball',{type:b.dataset.cb,keyword:b.dataset.kw}));
+$('#bGrowth').onclick=()=>post('/api/trigger_growth');
+let mode='sim';
+$('#bMode').onclick=async()=>{ mode=mode==='sim'?'replay':'sim'; await post('/api/mode',{mode}); $('#bMode').textContent=mode==='replay'?'🎞 Replay':'🎞 Sim'; $('#bReset').click(); };
+
+// nexla badge
+fetch('/api/nexset').then(r=>r.json()).then(d=>{ $('#bgNexla').className='b2'+(d.live?' on':''); $('#bgNexla').textContent='◐ Nexla · '+(d.live?'Nexset LIVE':'Nexset'); }).catch(()=>{});
+
+// SSE
+let sse;
+function connect(){ sse=new EventSource('/api/events'); sse.onmessage=ev=>{try{onEvent(JSON.parse(ev.data));}catch(e){}}; }
+connect();
+setHero('running-shoes');
+</script>
+</body>
+</html>

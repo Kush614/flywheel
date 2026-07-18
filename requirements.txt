@@ -1,0 +1,11 @@
+# Flywheel core (M0/M1) has ZERO runtime dependencies — pure stdlib, on purpose.
+# This is the fallback demo that runs even if every sponsor API is down.
+
+# Dev/test only:
+pytest>=8.0
+
+# Sponsor integrations need NO extra Python packages — they shell out to CLIs
+# (nexla-cli, zero) or call HTTP over stdlib urllib (Anthropic API). The core
+# stays dependency-free on purpose.
+#   nexla-cli  -> npm i -g @nexla/nexla-cli   (M3)
+#   zero       -> npm i -g @zeroxyz/cli        (M5, already live)
