@@ -300,9 +300,13 @@ class Handler(BaseHTTPRequestHandler):
 
     # --- routing -----------------------------------------------------------
     def do_GET(self):
-        path = urlparse(self.path).path
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path == "/" or path == "/index.html":
-            self._serve_file(os.path.join(STATIC, "index.html"), "text/html")
+            if "snap" in parsed.query:
+                self._serve_snapshot()          # inline history for screenshots
+            else:
+                self._serve_file(os.path.join(STATIC, "index.html"), "text/html")
         elif path == "/about":
             self._serve_file(os.path.join(STATIC, "about.html"), "text/html")
         elif path == "/api/events":
@@ -385,6 +389,24 @@ class Handler(BaseHTTPRequestHandler):
             pass
         finally:
             SESSION.bus.unsubscribe(q)
+
+    def _serve_snapshot(self):
+        """Serve index.html with the event history inlined — a static, fully
+        rendered snapshot for headless screenshots (no live SSE)."""
+        try:
+            with open(os.path.join(STATIC, "index.html"), encoding="utf-8") as f:
+                html = f.read()
+        except FileNotFoundError:
+            self.send_error(404)
+            return
+        inject = "<script>window.__SNAP__=" + json.dumps(SESSION.bus.snapshot()) + ";</script>"
+        html = html.replace("<body>", "<body>" + inject, 1)
+        data = html.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html")
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
 
     def _serve_json(self, obj):
         data = json.dumps(obj).encode()

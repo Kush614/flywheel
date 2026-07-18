@@ -10,6 +10,20 @@ video — then ships the champion to every ad platform. Keyless compute on **Zer
 
 ---
 
+## 📸 Screenshots
+
+**The app** — one clean page: the featured ad, conversions-per-dollar with a live upward trend,
+the ads-learning grid (a flopping ad flagged *needs new creative*, winners crowned 🏆), and a real
+x402 cost ledger. Everything you see is driven by the live loop.
+
+![Dashboard](docs/screenshots/dashboard.png)
+
+**How it works** (`/about`) — the full architecture, end to end.
+
+![Architecture](docs/screenshots/about.png)
+
+---
+
 ## ✨ The idea
 
 Most "AI ad" tools generate a campaign once and stop — they render and walk away. Flywheel closes

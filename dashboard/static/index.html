@@ -316,8 +316,11 @@ fetch('/api/nexset').then(r=>r.json()).then(d=>{ $('#bgNexla').className='b2'+(d
 // SSE
 let sse;
 function connect(){ sse=new EventSource('/api/events'); sse.onmessage=ev=>{try{onEvent(JSON.parse(ev.data));}catch(e){}}; }
-connect();
 setHero('running-shoes');
+if(window.__SNAP__){
+  // server inlined the history — replay synchronously (for screenshots), no live stream
+  window.__SNAP__.forEach(e=>{try{onEvent(e);}catch(_){}}); setStatus(false);
+} else { connect(); }
 </script>
 </body>
 </html>
